@@ -1,0 +1,6 @@
+vehicleType=Mobil
+vehicleCondition=Bekas
+vehicleYear=2024
+totalLoanAmount=100000000
+loanTenure=3
+downPayment=25000000

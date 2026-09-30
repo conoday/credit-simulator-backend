@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+set -eu
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+TARGET="$ROOT/target/classes"
+if [ ! -f "$TARGET/com/nusantech/creditsimulator/Main.class" ]; then
+    if command -v mvn >/dev/null 2>&1; then
+        (cd "$ROOT" && mvn -q -DskipTests package)
+    else
+        mkdir -p "$TARGET"
+        find "$ROOT/src/main/java" -name '*.java' -print > "$ROOT/target/main-sources.txt"
+        javac --release 17 -encoding UTF-8 -d "$TARGET" @"$ROOT/target/main-sources.txt"
+    fi
+fi
+exec java -cp "$TARGET" com.nusantech.creditsimulator.Main "$@"

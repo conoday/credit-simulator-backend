@@ -1,0 +1,7 @@
+.git
+target
+*.pdf
+*.xlsx
+sheets.json
+tmp_pdf
+tmp_rumus.png

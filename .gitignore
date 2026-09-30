@@ -1,0 +1,10 @@
+/target/
+/sheets.json
+*.class
+*.jar
+*.log
+*.tmp
+/tmp_pdf/
+/tmp_rumus.png
+/TechTest Backend.pdf
+/Rumus.xlsx
