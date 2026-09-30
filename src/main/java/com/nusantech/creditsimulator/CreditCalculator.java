@@ -26,6 +26,9 @@ public final class CreditCalculator {
                     TWELVE.multiply(BigDecimal.valueOf(remainingYears)), 12, RoundingMode.HALF_UP);
             BigDecimal closingBalance = totalDue.subtract(
                     monthlyPayment.multiply(TWELVE, CALCULATION_CONTEXT), CALCULATION_CONTEXT);
+            if (remainingYears == 1) {
+                closingBalance = BigDecimal.ZERO;
+            }
 
             installments.add(new AnnualInstallment(
                     year,

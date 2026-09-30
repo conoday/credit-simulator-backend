@@ -21,7 +21,7 @@ public final class InputParser {
         } catch (IOException exception) {
             throw new ApplicationException("Tidak dapat membaca file input: " + path, exception);
         }
-        String trimmed = content.trim();
+        String trimmed = (content.startsWith("\uFEFF") ? content.substring(1) : content).trim();
         if (trimmed.isEmpty()) {
             throw new ApplicationException("File input kosong.");
         }
@@ -37,7 +37,11 @@ public final class InputParser {
         }
         String vehicleType = text(value(values, "vehicleType"));
         String vehicleCondition = text(value(values, "vehicleCondition"));
-        int vehicleYear = integer(value(values, "vehicleYear"), "vehicleYear");
+        Object rawYear = value(values, "vehicleYear");
+        if (rawYear == null || !rawYear.toString().trim().matches("[0-9]{4}")) {
+            throw new ApplicationException("Tahun kendaraan harus berupa 4 digit.");
+        }
+        int vehicleYear = integer(rawYear, "vehicleYear");
         BigDecimal totalLoanAmount = decimal(value(values, "totalLoanAmount"), "totalLoanAmount");
         int loanTenure = integer(value(values, "loanTenure"), "loanTenure");
         BigDecimal downPayment = decimal(value(values, "downPayment"), "downPayment");
@@ -64,6 +68,9 @@ public final class InputParser {
                 hasKeyValue = true;
                 String key = line.substring(0, separator).trim();
                 String rawValue = line.substring(separator + 1).trim();
+                if (keyedValues.keySet().stream().anyMatch(existing -> existing.equalsIgnoreCase(key))) {
+                    throw new ApplicationException("Field input berulang: " + key);
+                }
                 keyedValues.put(key, parseScalar(rawValue));
             } else {
                 lines.add(line);
@@ -96,33 +103,41 @@ public final class InputParser {
                 || (value.startsWith("'") && value.endsWith("'"))) {
             return value.substring(1, value.length() - 1);
         }
-        try {
-            return new BigDecimal(value);
-        } catch (NumberFormatException ignored) {
-            return value;
-        }
+        return value;
     }
 
     private static Object value(Map<String, Object> values, String expectedKey) {
+        Object result = null;
+        boolean found = false;
         for (Map.Entry<String, Object> entry : values.entrySet()) {
             if (entry.getKey().equalsIgnoreCase(expectedKey)) {
-                return entry.getValue();
+                if (found) {
+                    throw new ApplicationException("Field input berulang: " + expectedKey);
+                }
+                found = true;
+                result = entry.getValue();
             }
+        }
+        if (found) {
+            return result;
         }
         throw new ApplicationException("Field input wajib diisi: " + expectedKey);
     }
 
     private static String text(Object value) {
-        if (value == null) {
-            throw new ApplicationException("Field teks tidak boleh null.");
+        if (!(value instanceof String string)) {
+            throw new ApplicationException("Jenis dan kondisi kendaraan harus berupa teks.");
         }
-        return String.valueOf(value).trim();
+        return string.trim();
     }
 
     private static int integer(Object value, String field) {
         try {
             if (value instanceof Number number) {
                 return new BigDecimal(number.toString()).intValueExact();
+            }
+            if (value == null || !value.toString().trim().matches("[0-9]+")) {
+                throw new NumberFormatException();
             }
             return new BigDecimal(String.valueOf(value).trim()).intValueExact();
         } catch (ArithmeticException | NumberFormatException exception) {

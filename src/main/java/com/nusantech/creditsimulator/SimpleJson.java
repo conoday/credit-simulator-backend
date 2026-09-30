@@ -95,6 +95,7 @@ public final class SimpleJson {
     private static final class Parser {
         private final String text;
         private int index;
+        private int depth;
 
         private Parser(String text) {
             this.text = text == null ? "" : text;
@@ -115,15 +116,22 @@ public final class SimpleJson {
             if (index >= text.length()) {
                 fail("JSON kosong");
             }
-            return switch (text.charAt(index)) {
-                case '{' -> parseObjectValue();
-                case '[' -> parseArrayValue();
-                case '"' -> parseString();
-                case 't' -> parseLiteral("true", Boolean.TRUE);
-                case 'f' -> parseLiteral("false", Boolean.FALSE);
-                case 'n' -> parseLiteral("null", null);
-                default -> parseNumber();
-            };
+            if (++depth > 64) {
+                fail("JSON terlalu dalam");
+            }
+            try {
+                return switch (text.charAt(index)) {
+                    case '{' -> parseObjectValue();
+                    case '[' -> parseArrayValue();
+                    case '"' -> parseString();
+                    case 't' -> parseLiteral("true", Boolean.TRUE);
+                    case 'f' -> parseLiteral("false", Boolean.FALSE);
+                    case 'n' -> parseLiteral("null", null);
+                    default -> parseNumber();
+                };
+            } finally {
+                depth--;
+            }
         }
 
         private Map<String, Object> parseObjectValue() {
@@ -139,6 +147,9 @@ public final class SimpleJson {
                     fail("Nama field JSON wajib berupa string");
                 }
                 String key = parseString();
+                if (object.containsKey(key)) {
+                    fail("Field JSON berulang: " + key);
+                }
                 skipWhitespace();
                 expect(':');
                 object.put(key, parseValue());
@@ -176,6 +187,9 @@ public final class SimpleJson {
                     return value.toString();
                 }
                 if (character != '\\') {
+                    if (character < 0x20) {
+                        fail("Karakter kontrol dalam string JSON harus di-escape");
+                    }
                     value.append(character);
                     continue;
                 }
@@ -221,26 +235,26 @@ public final class SimpleJson {
 
         private Number parseNumber() {
             int start = index;
-            if (consume('-')) {
-                // sign consumed
+            consume('-');
+            if (consume('0')) {
+                if (index < text.length() && isDigit(text.charAt(index))) {
+                    fail("Angka JSON tidak boleh memiliki nol di depan");
+                }
+            } else {
+                consumeDigits();
             }
-            consumeDigits();
-            boolean decimal = consume('.');
-            if (decimal) {
+            if (consume('.')) {
                 consumeDigits();
             }
             if (consume('e') || consume('E')) {
-                consume('+');
-                consume('-');
+                if (!consume('+')) {
+                    consume('-');
+                }
                 consumeDigits();
-                decimal = true;
-            }
-            if (start == index || (index == start + 1 && text.charAt(start) == '-')) {
-                fail("Angka JSON tidak valid");
             }
             String number = text.substring(start, index);
             try {
-                return decimal ? new BigDecimal(number) : Long.valueOf(number);
+                return new BigDecimal(number);
             } catch (NumberFormatException exception) {
                 throw new ApplicationException("Angka JSON tidak valid: " + number, exception);
             }
@@ -248,7 +262,7 @@ public final class SimpleJson {
 
         private void consumeDigits() {
             int start = index;
-            while (index < text.length() && Character.isDigit(text.charAt(index))) {
+            while (index < text.length() && isDigit(text.charAt(index))) {
                 index++;
             }
             if (start == index) {
@@ -271,9 +285,13 @@ public final class SimpleJson {
         }
 
         private void skipWhitespace() {
-            while (index < text.length() && Character.isWhitespace(text.charAt(index))) {
+            while (index < text.length() && " \t\r\n".indexOf(text.charAt(index)) >= 0) {
                 index++;
             }
+        }
+
+        private static boolean isDigit(char value) {
+            return value >= '0' && value <= '9';
         }
 
         private void fail(String message) {

@@ -22,7 +22,7 @@ public final class LoanValidator {
         }
         if (input.vehicleCondition() == VehicleCondition.BARU
                 && input.vehicleYear() < currentYear - 1) {
-            throw new ValidationException("Kendaraan baru tidak boleh lebih lama dari current year - 1.");
+            throw new ValidationException("Tahun kendaraan baru minimal " + (currentYear - 1) + ".");
         }
         if (input.totalLoanAmount() == null
                 || input.totalLoanAmount().signum() <= 0

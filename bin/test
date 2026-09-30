@@ -1,11 +1,12 @@
 #!/usr/bin/env sh
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$ROOT"
 MAIN="$ROOT/target/classes"
 TEST="$ROOT/target/test-classes"
 mkdir -p "$MAIN" "$TEST"
-find "$ROOT/src/main/java" -name '*.java' -print > "$ROOT/target/main-sources.txt"
-find "$ROOT/src/test/java" -name '*.java' -print > "$ROOT/target/test-sources.txt"
-javac --release 17 -encoding UTF-8 -d "$MAIN" @"$ROOT/target/main-sources.txt"
-javac --release 17 -encoding UTF-8 --add-modules jdk.httpserver -cp "$MAIN" -d "$TEST" @"$ROOT/target/test-sources.txt"
+find src/main/java -name '*.java' -print > target/main-sources.txt
+find src/test/java -name '*.java' -print > target/test-sources.txt
+javac --release 17 -encoding UTF-8 -d "$MAIN" @target/main-sources.txt
+javac --release 17 -encoding UTF-8 --add-modules jdk.httpserver -cp "$MAIN" -d "$TEST" @target/test-sources.txt
 java --add-modules jdk.httpserver -cp "$MAIN:$TEST" com.nusantech.creditsimulator.TestSuite

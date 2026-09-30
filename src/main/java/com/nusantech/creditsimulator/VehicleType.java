@@ -1,6 +1,7 @@
 package com.nusantech.creditsimulator;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 
 public enum VehicleType {
     MOBIL(new BigDecimal("0.08")),
@@ -20,7 +21,7 @@ public enum VehicleType {
         if (value == null) {
             throw new ValidationException("Jenis kendaraan wajib diisi.");
         }
-        return switch (value.trim().toLowerCase()) {
+        return switch (value.trim().toLowerCase(Locale.ROOT)) {
             case "mobil" -> MOBIL;
             case "motor" -> MOTOR;
             default -> throw new ValidationException("Jenis kendaraan harus Mobil atau Motor.");
@@ -28,6 +29,6 @@ public enum VehicleType {
     }
 
     public String displayName() {
-        return name().charAt(0) + name().substring(1).toLowerCase();
+        return name().charAt(0) + name().substring(1).toLowerCase(Locale.ROOT);
     }
 }
